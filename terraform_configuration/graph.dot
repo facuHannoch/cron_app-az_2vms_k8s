@@ -1,0 +1,31 @@
+digraph G {
+  rankdir = "RL";
+  node [shape = rect, fontname = "sans-serif"];
+  "azurerm_linux_virtual_machine.vm1" [label="azurerm_linux_virtual_machine.vm1"];
+  "azurerm_linux_virtual_machine.vm2" [label="azurerm_linux_virtual_machine.vm2"];
+  "azurerm_network_interface.nic1" [label="azurerm_network_interface.nic1"];
+  "azurerm_network_interface.nic2" [label="azurerm_network_interface.nic2"];
+  "azurerm_network_interface_security_group_association.nic_nsg1" [label="azurerm_network_interface_security_group_association.nic_nsg1"];
+  "azurerm_network_interface_security_group_association.nic_nsg2" [label="azurerm_network_interface_security_group_association.nic_nsg2"];
+  "azurerm_network_security_group.nsg" [label="azurerm_network_security_group.nsg"];
+  "azurerm_public_ip.ip1" [label="azurerm_public_ip.ip1"];
+  "azurerm_public_ip.ip2" [label="azurerm_public_ip.ip2"];
+  "azurerm_resource_group.rg" [label="azurerm_resource_group.rg"];
+  "azurerm_subnet.sn" [label="azurerm_subnet.sn"];
+  "azurerm_virtual_network.vnet" [label="azurerm_virtual_network.vnet"];
+  "azurerm_linux_virtual_machine.vm1" -> "azurerm_network_interface.nic1";
+  "azurerm_linux_virtual_machine.vm2" -> "azurerm_network_interface.nic2";
+  "azurerm_network_interface.nic1" -> "azurerm_public_ip.ip1";
+  "azurerm_network_interface.nic1" -> "azurerm_subnet.sn";
+  "azurerm_network_interface.nic2" -> "azurerm_public_ip.ip2";
+  "azurerm_network_interface.nic2" -> "azurerm_subnet.sn";
+  "azurerm_network_interface_security_group_association.nic_nsg1" -> "azurerm_network_interface.nic1";
+  "azurerm_network_interface_security_group_association.nic_nsg1" -> "azurerm_network_security_group.nsg";
+  "azurerm_network_interface_security_group_association.nic_nsg2" -> "azurerm_network_interface.nic2";
+  "azurerm_network_interface_security_group_association.nic_nsg2" -> "azurerm_network_security_group.nsg";
+  "azurerm_network_security_group.nsg" -> "azurerm_resource_group.rg";
+  "azurerm_public_ip.ip1" -> "azurerm_resource_group.rg";
+  "azurerm_public_ip.ip2" -> "azurerm_resource_group.rg";
+  "azurerm_subnet.sn" -> "azurerm_virtual_network.vnet";
+  "azurerm_virtual_network.vnet" -> "azurerm_resource_group.rg";
+}

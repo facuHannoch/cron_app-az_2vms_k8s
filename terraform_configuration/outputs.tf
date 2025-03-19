@@ -1,7 +1,7 @@
 locals {
   ssh_commands = {
-    vm1 = "ssh -i C:\\Users\\facuh\\.ssh\\1_azure_simple_vm_deployment azureuser@${azurerm_public_ip.ip1.ip_address}"
-    vm2 = "ssh -i C:\\Users\\facuh\\.ssh\\1_azure_simple_vm_deployment azureuser@${azurerm_public_ip.ip2.ip_address}"
+    vm1 = "ssh -i C:\\Users\\facuh\\.ssh\\1_5-2_vms azureuser@${azurerm_public_ip.ip1.ip_address}"
+    vm2 = "ssh -i C:\\Users\\facuh\\.ssh\\1_5-2_vms azureuser@${azurerm_public_ip.ip2.ip_address}"
   }
 }
 

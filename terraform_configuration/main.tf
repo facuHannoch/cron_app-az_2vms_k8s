@@ -123,8 +123,7 @@ resource "azurerm_linux_virtual_machine" "vm1" {
 
   admin_ssh_key {
     username = "azureuser"
-    # public_key = file("~/.ssh/id_rsa.pub")
-    public_key = file("C:/Users/facuh/.ssh/1_azure_simple_vm_deployment.pub")
+    public_key = file("C:/Users/facuh/.ssh/1_5-2_vms.pub")
   }
 
   os_disk {
@@ -158,8 +157,7 @@ resource "azurerm_linux_virtual_machine" "vm2" {
 
   admin_ssh_key {
     username = "azureuser"
-    # public_key = file("~/.ssh/id_rsa.pub")
-    public_key = file("C:/Users/facuh/.ssh/1_azure_simple_vm_deployment.pub")
+    public_key = file("C:/Users/facuh/.ssh/1_5-2_vms.pub")
   }
 
   os_disk {

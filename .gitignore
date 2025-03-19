@@ -13,12 +13,26 @@ override.tf
 override.tf.json
 .terraformrc
 terraform.rc
+# Terraform plan output files
+*.tfplan
+# Sensitive Terraform variable files
+terraform.tfvars
+terraform.tfvars.json
 
 # -------------------------------
 # Ansible
 # -------------------------------
 # File generated when a playbook fails
 *.retry
+# Ansible Vault encrypted files
+*.vault
+# Ansible inventory files (if sensitive)
+inventory/
+# Custom SSH configurations
+.ssh/
+# Ansible roles and collections installed locally
+roles/
+collections/
 
 # -------------------------------
 # Kubernetes
@@ -28,6 +42,42 @@ terraform.rc
 .kube/
 # Kubernetes CLI logs
 kubectl.log
+# Helm release config
+*.helmrelease
+# Helm charts (if locally built)
+charts/
+# Kustomize build artifacts
+kustomize/
+
+# -------------------------------
+# Node.js
+# -------------------------------
+# Dependencies
+node_modules/
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+# Build artifacts
+build/
+dist/
+.npm/
+.pnpm/
+.cache/
+# Local package lock files
+package-lock.json
+yarn.lock
+.pnpmfile.cjs
+.pnpmfile.js
+.nodemon-debug.log
+.nodemon.json
 
 # -------------------------------
 # Python
@@ -60,8 +110,25 @@ venv.bak/
 # -------------------------------
 # Log files
 *.log
-
 # Docker Compose override files
 docker-compose.override.yml
 docker-compose.override.yaml
 docker-compose.*.yml
+# Docker image cache
+**/.dockerignore
+.docker/
+# Local Docker environment files
+.docker.env
+.dockerignore
+# Docker volumes
+docker_volumes/
+# Built images
+*.tar
+
+# -------------------------------
+# Local Files & Misc
+# -------------------------------
+local/
+.DS_Store
+Thumbs.db
+*.swp
