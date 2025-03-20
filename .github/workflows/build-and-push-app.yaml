@@ -38,16 +38,16 @@ jobs:
         run: |
           USERNAME_LOWER=$(echo "${{ env.USERNAME }}" | tr '[:upper:]' '[:lower:]')
           docker build \
-            --cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.USERNAME_LOWER }}/${{ env.IMAGE_NAME }}:latest \
+            --cache-from=type=registry,ref=${{ env.REGISTRY }}/${USERNAME_LOWER}/${{ env.IMAGE_NAME }}:latest \
             --cache-to=type=inline \
-            -t ${{ env.REGISTRY }}/${{ env.USERNAME_LOWER }}/${{ env.IMAGE_NAME }}:latest \
-            -t ${{ env.REGISTRY }}/${{ env.USERNAME_LOWER }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+            -t ${{ env.REGISTRY }}/${USERNAME_LOWER}/${{ env.IMAGE_NAME }}:latest \
+            -t ${{ env.REGISTRY }}/${USERNAME_LOWER}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
         # So we now always have a versioned image (commit-hash) alongside latest
         
       
       - name: Push Docker image
         run: |
           USERNAME_LOWER=$(echo "${{ env.USERNAME }}" | tr '[:upper:]' '[:lower:]')
-          docker push ${{ env.REGISTRY }}/${{ env.USERNAME_LOWER }}/${{ env.IMAGE_NAME }}:latest
-          docker push ${{ env.REGISTRY }}/${{ env.USERNAME_LOWER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/${USERNAME_LOWER}/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.REGISTRY }}/${USERNAME_LOWER}/${{ env.IMAGE_NAME }}:${{ github.sha }}
       
