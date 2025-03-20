@@ -12,7 +12,18 @@ RUN npm test
 RUN npm run lint
 
 
-# Final stage
+
+# Test image
+FROM node:23-alpine3.21
+WORKDIR /usr/src/cron-app/
+COPY package*.json .
+RUN npm install
+COPY . .
+EXPOSE 8080
+
+CMD [ "node", "cron.js"]
+
+# Prod image
 FROM node:23-alpine3.21
 
 WORKDIR /usr/src/cron-app/
@@ -20,7 +31,7 @@ WORKDIR /usr/src/cron-app/
 COPY package*.json .
 COPY cron.js .
 
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 EXPOSE 8080
 
