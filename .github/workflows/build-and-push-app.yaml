@@ -1,0 +1,54 @@
+name: Build and Push cron app
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up node
+        uses: actions/setup-node@v4
+
+      - run: npm install
+        working-directory: src
+      
+      - name: Run lint analysis
+        working-directory: src
+        run: npm run lint
+      
+      - name: Run tests
+        working-directory: src
+        run: npm test
+      
+      # - name: Build docker image
+      #   working-directory: src
+      #   run: docker build -t cron_app . # Add tag
+      
+      # - name: Deploy to container registry
+      #   working-directory: src
+      #   run: docker push # ???
+  
+
+
+
+
+  # build-image:
+  #   runs-on: ubuntu-latest
+  #   if: success()
+
+  #   steps:
+    
+  #     - name: Build image
+  #       working-directory: src
+  #       run: docker build -t 
+      
+  #     # - name: Test image
