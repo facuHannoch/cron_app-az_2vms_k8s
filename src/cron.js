@@ -1,11 +1,36 @@
-import fs from 'fs';
+import mongoose from 'mongoose';
 import http from 'http';
 import { URL } from 'url';
 
-const TIMES_PATH = './times.json';
 const INTERVAL_DURATION = 2; // seconds
 
-// Global object to store active timers by project name
+if (process.env.NODE_ENV !== 'test') {
+  // ---- MongoDB Connection ----
+  mongoose.connect('mongodb://localhost:27017/timerdb', {
+    // useNewUrlParser: true,
+    // useUnifiedTopology: true
+  })
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('MongoDB connection error:', err));
+}
+
+// ---- Schema and Model ----
+const projectSchema = new mongoose.Schema({
+  project_name: { type: String, unique: true, required: true },
+  elapsed_time: { type: Number, default: 0 },
+  times_called: { type: Number, default: 0 },
+  times_per_day: { type: Array, default: [] },
+  last_time: { type: Date, default: Date.now },
+  readable_time: {
+    hours: { type: Number, default: 0 },
+    minutes: { type: Number, default: 0 },
+    seconds: { type: Number, default: 0 }
+  }
+});
+
+const Project = mongoose.model('Project', projectSchema);
+
+// ---- Global Timer Storage ----
 let activeTimers = {};
 
 // ---- Utility Functions ----
@@ -15,35 +40,6 @@ let activeTimers = {};
  */
 function getCurrentDay() {
   return new Date().toISOString().split('T')[0];
-}
-
-/**
- * Reads and parses the JSON file that stores project times.
- * If the file does not exist, creates one with an empty array.
- */
-function loadData() {
-  try {
-    if (!fs.existsSync(TIMES_PATH)) {
-      fs.writeFileSync(TIMES_PATH, JSON.stringify([]));
-      return [];
-    }
-    const data = fs.readFileSync(TIMES_PATH, 'utf8');
-    return JSON.parse(data);
-  } catch (err) {
-    console.error("Error loading data:", err);
-    return [];
-  }
-}
-
-/**
- * Saves the given data array to the JSON file.
- */
-function saveData(data) {
-  try {
-    fs.writeFileSync(TIMES_PATH, JSON.stringify(data, null, 4));
-  } catch (err) {
-    console.error("Error saving data:", err);
-  }
 }
 
 /**
@@ -57,55 +53,53 @@ function formatTime(totalSeconds) {
 }
 
 /**
- * Finds a project by name in the data array.
- * If not found and createIfNotExists is true, creates a new project entry.
+ * Finds a project by name in the DB.
+ * If not found and createIfNotExists is true, creates a new project document.
  */
-function getProject(data, projectName, createIfNotExists = false) {
-  let project = data.find(p => p.project_name === projectName);
+async function getProject(projectName, createIfNotExists = false) {
+  let project = await Project.findOne({ project_name: projectName });
   if (!project && createIfNotExists) {
-    project = {
+    project = new Project({
       project_name: projectName,
       elapsed_time: 0,
       times_called: 0,
       times_per_day: [],
-      last_time: new Date().toISOString(),
+      last_time: new Date(),
       readable_time: formatTime(0)
-    };
-    data.push(project);
-    saveData(data);
+    });
+    await project.save();
   }
   return project;
 }
 
 /**
- * Updates the project's time (both total and for today).
+ * Updates the project's time (both total and for today) and saves it to the DB.
  */
-function updateProjectTime(project, seconds) {
+async function updateProjectTime(project, seconds) {
   project.elapsed_time += seconds;
-  project.last_time = new Date().toISOString();
+  project.last_time = new Date();
   project.readable_time = formatTime(project.elapsed_time);
 
-  // Update today's entry
   const today = getCurrentDay();
+  // Look for an existing entry for today
   let dayEntry = project.times_per_day.find(entry => entry[today] !== undefined);
   if (dayEntry) {
     dayEntry[today] += seconds;
   } else {
     project.times_per_day.push({ [today]: seconds });
   }
+  await project.save();
 }
 
 // ---- Chronometer Functions ----
 
 /**
  * Starts the timer for a given project.
- * If a timer is already running for that project, it won't start another.
  */
-function startTimer(projectName) {
-  let data = loadData();
-  let project = getProject(data, projectName, true);
+async function startTimer(projectName) {
+  let project = await getProject(projectName, true);
   project.times_called += 1;
-  saveData(data);
+  await project.save();
 
   if (activeTimers[projectName]) {
     console.log(`Timer already running for ${projectName}`);
@@ -113,15 +107,9 @@ function startTimer(projectName) {
   }
 
   console.log(`Timer started for project: ${projectName} at ${new Date().toTimeString()}`);
-  const timer = setInterval(() => {
-    let data = loadData();
-    let project = getProject(data, projectName, true);
-    updateProjectTime(project, INTERVAL_DURATION);
-    const index = data.findIndex(p => p.project_name === projectName);
-    if (index !== -1) {
-      data[index] = project;
-      saveData(data);
-    }
+  const timer = setInterval(async () => {
+    let project = await getProject(projectName, true);
+    await updateProjectTime(project, INTERVAL_DURATION);
     console.log(`Updated time for ${projectName}:`, project.readable_time);
   }, INTERVAL_DURATION * 1000);
 
@@ -144,26 +132,19 @@ function stopTimer(projectName) {
 /**
  * Edits a project's time by adding or subtracting minutes.
  */
-function editTime(projectName, minutes) {
-  const data = loadData();
-  let project = getProject(data, projectName, true);
+async function editTime(projectName, minutes) {
+  let project = await getProject(projectName, true);
   const seconds = minutes * 60;
-  updateProjectTime(project, seconds);
-  const index = data.findIndex(p => p.project_name === projectName);
-  if (index !== -1) {
-    data[index] = project;
-    saveData(data);
-  }
+  await updateProjectTime(project, seconds);
   console.log(`Edited time for ${projectName}:`, project.readable_time);
 }
 
 /**
  * Lists all projects and their total elapsed times.
  */
-function listProjects() {
-  const data = loadData();
-  data.sort((a, b) => a.project_name.localeCompare(b.project_name));
-  data.forEach(project => {
+async function listProjects() {
+  const projects = await Project.find().sort({ project_name: 1 });
+  projects.forEach(project => {
     console.log(`${project.project_name}:`, project.readable_time);
   });
 }
@@ -171,11 +152,11 @@ function listProjects() {
 /**
  * Lists today's time entries for each project along with a total.
  */
-function listTodayTimes() {
-  const data = loadData();
+async function listTodayTimes() {
+  const projects = await Project.find();
   const today = getCurrentDay();
   let totalSeconds = 0;
-  data.forEach(project => {
+  projects.forEach(project => {
     const dayEntry = project.times_per_day.find(entry => entry[today] !== undefined);
     if (dayEntry) {
       const seconds = dayEntry[today];
@@ -188,7 +169,7 @@ function listTodayTimes() {
 
 // ---- HTTP Server Setup ----
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   const urlObj = new URL(req.url, `http://${req.headers.host}`);
   const pathname = urlObj.pathname;
   const query = urlObj.searchParams;
@@ -196,7 +177,7 @@ const server = http.createServer((req, res) => {
   if (pathname === '/start') {
     const projectName = query.get('project');
     if (projectName) {
-      startTimer(projectName);
+      await startTimer(projectName);
       res.writeHead(200, { 'Content-Type': 'text/plain' });
       res.end(`Started timer for project: ${projectName}\n`);
     } else {
@@ -224,7 +205,7 @@ const server = http.createServer((req, res) => {
     const projectName = query.get('project');
     const minutes = parseInt(query.get('minutes'), 10);
     if (projectName && !isNaN(minutes)) {
-      editTime(projectName, minutes);
+      await editTime(projectName, minutes);
       res.writeHead(200, { 'Content-Type': 'text/plain' });
       res.end(`Edited time for project: ${projectName}\n`);
     } else {
@@ -232,12 +213,12 @@ const server = http.createServer((req, res) => {
       res.end("Missing 'project' or 'minutes' parameter\n");
     }
   } else if (pathname === '/list') {
+    await listProjects();
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    listProjects();
     res.end("Listed all projects in console.\n");
   } else if (pathname === '/list-today') {
+    await listTodayTimes();
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    listTodayTimes();
     res.end("Listed today's times in console.\n");
   } else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -246,9 +227,11 @@ const server = http.createServer((req, res) => {
 });
 
 const PORT = process.env.PORT || 8082;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
 
 // Graceful shutdown on SIGINT (Ctrl+C)
 process.on('SIGINT', () => {
@@ -256,6 +239,12 @@ process.on('SIGINT', () => {
   Object.keys(activeTimers).forEach(proj => clearInterval(activeTimers[proj]));
   server.close(() => {
     console.log('HTTP server closed.');
-    process.exit();
+    mongoose.connection.close(() => {
+      console.log('MongoDB connection closed.');
+      process.exit();
+    });
   });
 });
+
+
+export default server;
