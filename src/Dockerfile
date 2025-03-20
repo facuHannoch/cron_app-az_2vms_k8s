@@ -1,4 +1,4 @@
-FROM node:23-alpine3.21 AS builder
+FROM node:23-bullseye AS test-runner
 
 WORKDIR /usr/src/cron-app/
 
@@ -17,8 +17,8 @@ FROM node:23-alpine3.21
 
 WORKDIR /usr/src/cron-app/
 
-COPY --from=builder package*.json .
-COPY --from=builder cron.js .
+COPY package*.json .
+COPY cron.js .
 
 RUN npm ci --only=production
 
