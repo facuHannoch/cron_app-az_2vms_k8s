@@ -12,28 +12,21 @@ RUN npm test
 RUN npm run lint
 
 
-
-# Test image
-FROM node:23-alpine3.21
-WORKDIR /usr/src/cron-app/
-COPY package*.json .
-RUN npm install
-COPY . .
-EXPOSE 8080
-
-CMD [ "node", "cron.js"]
-
-# Prod image
-FROM node:23-alpine3.21
+FROM node:23-alpine3.21 as production
 
 WORKDIR /usr/src/cron-app/
 
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 COPY package*.json .
+# COPY --from=test-runner /usr/src/cron-app/node_modules ./node_modules
+RUN npm ci --omit=dev
 COPY cron.js .
 
-RUN npm ci --omit=dev
 
-EXPOSE 8080
+USER appuser
+
+# EXPOSE 8080
 
 
 CMD [ "node", "cron.js" ]

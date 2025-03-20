@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  USERNAME: facuhannoch
+  USERNAME: ${{ github.actor }}
   IMAGE_NAME: cron_app
   # IMAGE_NAME: ${{ github.repository }}
 
@@ -29,12 +29,23 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Login into GitHub
-        run: echo "${{ secrets.GH_PAT }}" | docker login ghcr.io --username ${{ env.USERNAME }} --password-stdin
+        # run: echo "${{ secrets.GH_PAT }}" | docker login ghcr.io --username ${{ env.USERNAME }} --password-stdin
+        run: echo "${{ secrets.GITHUB_TOKEN }}" docker login ghcr.io --username ${{ env.USERNAME }} --password-stdin
       
       - name: Build Docker image
         working-directory: src
-        run: docker build -t ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ env.IMAGE_NAME }}:latest .
+        # run: docker build -t ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ env.IMAGE_NAME }}:latest .
+        run: |
+          docker build \
+            --cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.USERNAME }}/{{ env.IMAGE_NAME }}:latest \
+            --cache-to=type=inline \
+            -t ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ env.IMAGE_NAME }}:latest \
+            -t ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        # So we now always have a versioned image (commit-hash) alongside latest
+        
       
       - name: Push Docker image
-        run: docker push ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ env.IMAGE_NAME }}:latest
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
       
