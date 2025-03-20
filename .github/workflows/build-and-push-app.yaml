@@ -37,7 +37,7 @@ jobs:
         # run: docker build -t ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ env.IMAGE_NAME }}:latest .
         run: |
           docker build \
-            --cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.USERNAME }}/{{ env.IMAGE_NAME }}:latest \
+            --cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ env.IMAGE_NAME }}:latest \
             --cache-to=type=inline \
             -t ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ env.IMAGE_NAME }}:latest \
             -t ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
