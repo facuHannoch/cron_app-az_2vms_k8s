@@ -5,50 +5,51 @@ on:
     branches:
       - master
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
 
-  build-and-test:
+  build-and-push-image:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
 
     steps:
 
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Set up node
-        uses: actions/setup-node@v4
-
-      - run: npm install
-        working-directory: src
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Run lint analysis
-        working-directory: src
-        run: npm run lint
+      - name: Extract metadata for docker
+        id: metadata
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ env.REGISTRY }}%${{ env.IMAGE_NAME }}
       
-      - name: Run tests
-        working-directory: src
-        run: npm test
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta-outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
       
-      # - name: Build docker image
-      #   working-directory: src
-      #   run: docker build -t cron_app . # Add tag
-      
-      # - name: Deploy to container registry
-      #   working-directory: src
-      #   run: docker push # ???
-  
-
-
-
-
-  # build-image:
-  #   runs-on: ubuntu-latest
-  #   if: success()
-
-  #   steps:
-    
-  #     - name: Build image
-  #       working-directory: src
-  #       run: docker build -t 
-      
-  #     # - name: Test image
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.REGISTRY /${{ env.IMAGE_NAME }}}}
+          subject-dijest: ${{ steps.push.ouputs.digest }}
+          push-to-registry: true

@@ -6,12 +6,9 @@ const INTERVAL_DURATION = 2; // seconds
 
 if (process.env.NODE_ENV !== 'test') {
   // ---- MongoDB Connection ----
-  mongoose.connect('mongodb://localhost:27017/timerdb', {
-    // useNewUrlParser: true,
-    // useUnifiedTopology: true
-  })
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  mongoose.connect(`mongodb://${process.env.DB_URL}/timerdb`, {})
+    .then(() => console.log('Connected to MongoDB'))
+    .catch(err => console.error('MongoDB connection error:', err));
 }
 
 // ---- Schema and Model ----
