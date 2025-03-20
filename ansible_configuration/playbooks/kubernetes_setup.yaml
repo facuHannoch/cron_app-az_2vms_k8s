@@ -1,8 +1,27 @@
 ---
+  - name: Automate host key acceptance
+    hosts: all
+    gather_facts: false
+    tasks:
+      - name: Install OpenSSH server on localhost (optional)
+        become: yes
+        apt:
+          name: openssh-server
+          state: present
+        when: inventory_hostname == 'localhost'
+        
+      - name: Add host keys to known_hosts (skip localhost)
+        shell: "ssh-keyscan -H {{ hostvars[item].ansible_host }} >> ~/.ssh/known_hosts"
+        delegate_to: localhost
+        run_once: true
+        with_items: "{{ groups['all'] }}"
+
+        
   - name: Set cluster nodes
     hosts: all
     become: yes
     tasks:
+
       - name: Install dependencies
         apt:
           name:
@@ -92,9 +111,6 @@
       
       - name: Hold Kubernetes packages
         command: echo "{{ item }} hold" | sudo dpkg --set-selections
-        # ansible.builtin.dpkg_selections:
-        #   name: "{{ item }}"
-        #   selection: hold
         loop:
           - kubectl
           - kubeadm
@@ -120,45 +136,13 @@
         set_fact:
           join_command: "{{ join_command.stdout }}"
       
-      - name: Set KUBECONFIG for root user
+      - name: Set KUBECONFIG for regular users
         shell: |
-          mkdir -p /root/.kube
-          cp -f /etc/kubernetes/admin.conf /root/.kube/config
-          chown root:root /root/.kube/config
+          mkdir -p $HOME/.kube 
+          sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config 
+          sudo chown $(id -u):$(id -g) $HOME/.kube/config 
         when: kubeadm_init is defined or kubeadm_init_check.stat.exists
-          # export KUBECONFIG=$HOME/.kube/admin.config
-        # If in shell, the export KUBECONFIG=... only applies inside the task and doesn't persist.
       
-      - name: Export KUBECONFIG
-        lineinfile:
-          path: /root/.bashrc
-          line: 'export KUBECONFIG=/root/.kube/config'
-          create: yes
-
-      
-      # ??
-      # - name: Set KUBECONFIG permissions for user
-      #   file:
-      #     path: /etc/kubernetes/admin.conf
-      #     owner: azureuser
-      #     group: azureuser
-      #     mode: '0644'
-      
-      # - name: Ensure KUBECONFIG is available for user
-      #   lineinfile:
-      #     path: /home/azureuser/.bashrc
-      #     line: 'export KUBECONFIG=/etc/kubernetes/admin.conf'
-      # ??
-
-      # - name: Wait for Kubernetes API to be available
-      #   wait_for:
-      #     port: 6443
-      #     host: localhost
-      #     delay: 15
-      #     timeout: 120
-      #   when: kubeadm_init is defined or kubeadm_init_check.stat.exists
-
-      # Alternative to wait_for:
       - name: Wait for Kubernetes API to be ready
         command: kubectl get nodes
         register: api_ready
@@ -194,27 +178,3 @@
       - name: Join to Kubernetes cluster
         shell: "{{ hostvars['k8s_master'].join_command }}"
         when: hostvars['k8s_master'].join_command is defined
-
-      
-
-
-
-# - name: Ensure .kube directory exists
-#   file:
-#     path: /root/.kube
-#     state: directory
-#     mode: '0755'
-
-# - name: Copy Kubernetes config file
-#   copy:
-#     src: /etc/kubernetes/admin.conf
-#     dest: /root/.kube/config
-#     owner: root
-#     group: root
-#     mode: '0644'
-
-# - name: Export KUBECONFIG in bashrc
-#   lineinfile:
-#     path: /root/.bashrc
-#     line: 'export KUBECONFIG=/root/.kube/config'
-#     create: yes

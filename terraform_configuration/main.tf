@@ -87,6 +87,51 @@ resource "azurerm_network_security_group" "nsg" {
     source_address_prefix      = "0.0.0.0/0"
     destination_address_prefix = "*"
   }
+
+  security_rule {
+    name                       = "ingress_http"
+    priority                   = "110"
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "0.0.0.0/0"
+    destination_address_prefix = "*"
+  }
+  security_rule {
+    name                       = "egress_http"
+    priority                   = "120"
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "0.0.0.0/0"
+    destination_address_prefix = "*"
+  }
+  security_rule {
+    name                       = "ingress_https"
+    priority                   = "130"
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "0.0.0.0/0"
+    destination_address_prefix = "*"
+  }
+  security_rule {
+    name                       = "egress_https"
+    priority                   = "140"
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "0.0.0.0/0"
+    destination_address_prefix = "*"
+  }
 }
 
 
@@ -122,7 +167,7 @@ resource "azurerm_linux_virtual_machine" "vm1" {
   size           = "Standard_B2s"
 
   admin_ssh_key {
-    username = "azureuser"
+    username   = "azureuser"
     public_key = file("C:/Users/facuh/.ssh/1_5-2_vms.pub")
   }
 
@@ -156,7 +201,7 @@ resource "azurerm_linux_virtual_machine" "vm2" {
   size           = "Standard_B2s"
 
   admin_ssh_key {
-    username = "azureuser"
+    username   = "azureuser"
     public_key = file("C:/Users/facuh/.ssh/1_5-2_vms.pub")
   }
 
