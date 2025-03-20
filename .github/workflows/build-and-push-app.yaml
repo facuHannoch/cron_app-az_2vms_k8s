@@ -7,7 +7,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  USERNAME: ${{ github.actor }}
+  # USERNAME: ${{ github.actor }}
+  USERNAME: facuhannoch
   IMAGE_NAME: cron_app
   # IMAGE_NAME: ${{ github.repository }}
 
@@ -38,13 +39,13 @@ jobs:
         working-directory: src
         run: docker build -t ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ env.IMAGE_NAME }}:latest .
         # run: |
-        #   USERNAME_LOWER=$(echo "${{ env.USERNAME }}" | tr '[:upper:]' '[:lower:]')
-        #   docker build \
-        #     --cache-from=type=registry,ref=${{ env.REGISTRY }}/${USERNAME_LOWER}/${{ env.IMAGE_NAME }}:latest \
-        #     --cache-to=type=inline \
-        #     -t ${{ env.REGISTRY }}/${USERNAME_LOWER}/${{ env.IMAGE_NAME }}:latest \
-        #     -t ${{ env.REGISTRY }}/${USERNAME_LOWER}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
-        # # So we now always have a versioned image (commit-hash) alongside latest
+        # #   USERNAME_LOWER=$(echo "${{ env.USERNAME }}" | tr '[:upper:]' '[:lower:]')
+        # #   docker build \
+        # #     --cache-from=type=registry,ref=${{ env.REGISTRY }}/${USERNAME_LOWER}/${{ env.IMAGE_NAME }}:latest \
+        # #     --cache-to=type=inline \
+        # #     -t ${{ env.REGISTRY }}/${USERNAME_LOWER}/${{ env.IMAGE_NAME }}:latest \
+        # #     -t ${{ env.REGISTRY }}/${USERNAME_LOWER}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+        # # # So we now always have a versioned image (commit-hash) alongside latest
               
       - name: Push Docker image
         run: docker push ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ env.IMAGE_NAME }}:latest
