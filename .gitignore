@@ -72,8 +72,6 @@ dist/
 .pnpm/
 .cache/
 # Local package lock files
-package-lock.json
-yarn.lock
 .pnpmfile.cjs
 .pnpmfile.js
 .nodemon-debug.log
