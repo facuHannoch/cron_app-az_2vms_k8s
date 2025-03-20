@@ -8,7 +8,6 @@ on:
 env:
   REGISTRY: ghcr.io
   USERNAME: ${{ github.actor }}
-  USERNAME_LOWER: $(echo "${{ env.USERNAME }}" | tr '[:upper:]' '[:lower:]')
   IMAGE_NAME: cron_app
   # IMAGE_NAME: ${{ github.repository }}
 
@@ -37,6 +36,7 @@ jobs:
         working-directory: src
         # run: docker build -t ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ env.IMAGE_NAME }}:latest .
         run: |
+          USERNAME_LOWER=$(echo "${{ env.USERNAME }}" | tr '[:upper:]' '[:lower:]')
           docker build \
             --cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.USERNAME_LOWER }}/${{ env.IMAGE_NAME }}:latest \
             --cache-to=type=inline \
@@ -47,6 +47,7 @@ jobs:
       
       - name: Push Docker image
         run: |
+          USERNAME_LOWER=$(echo "${{ env.USERNAME }}" | tr '[:upper:]' '[:lower:]')
           docker push ${{ env.REGISTRY }}/${{ env.USERNAME_LOWER }}/${{ env.IMAGE_NAME }}:latest
           docker push ${{ env.REGISTRY }}/${{ env.USERNAME_LOWER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
       
