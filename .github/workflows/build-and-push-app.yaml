@@ -30,7 +30,9 @@ jobs:
       
       - name: Login into GitHub
         # run: echo "${{ secrets.GH_PAT }}" | docker login ghcr.io --username ${{ env.USERNAME }} --password-stdin
-        run: echo "${{ secrets.GITHUB_TOKEN }}" docker login ghcr.io --username ${{ env.USERNAME }} --password-stdin
+        run: |
+          USERNAME_LOWER=$(echo "${{ env.USERNAME }}" | tr '[:upper:]' '[:lower:]')
+          echo "${{ secrets.GITHUB_TOKEN }}" docker login ghcr.io --username $USERNAME_LOWER --password-stdin
       
       - name: Build Docker image
         working-directory: src
