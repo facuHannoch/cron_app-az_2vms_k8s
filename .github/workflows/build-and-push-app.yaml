@@ -42,7 +42,8 @@ jobs:
         id: push
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./src
+          file: ./src/Dockerfile
           push: true
           tags: user/cron_app:latest
           # tags: ${{ steps.meta-outputs.tags }}
