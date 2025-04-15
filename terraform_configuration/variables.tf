@@ -64,6 +64,8 @@ variable "admin_username" {
 
 variable "public_key_path" {
   default = "~/.ssh/1_5-2_vms.pub"
+  # default = "${path.root}/.ssh/1_5-2_vms.pub"
+  # path.root points to the directory where the Terraform root module is located, not ~ or your home directory
 }
 
 variable "vm_size" {

@@ -3,19 +3,12 @@
     hosts: all
     gather_facts: false
     tasks:
-      - name: Install OpenSSH server on localhost (optional)
-        become: yes
-        apt:
-          name: openssh-server
-          state: present
-        when: inventory_hostname == 'localhost'
-        
       - name: Add host keys to known_hosts (skip localhost)
         shell: "ssh-keyscan -H {{ hostvars[item].ansible_host }} >> ~/.ssh/known_hosts"
         delegate_to: localhost
         run_once: true
         with_items: "{{ groups['all'] }}"
-
+        become: false
         
   - name: Set cluster nodes
     hosts: all
@@ -31,22 +24,17 @@
           state: present
           update_cache: yes
       
-      - name: Create /etc/containerd directory
-        file:
-          path: /etc/containerd
-          state: directory
-          mode: '0755'
+      # - name: Generate containerd config on remote host
+      #   command: containerd config default
+      #   args:
+      #     creates: /etc/containerd/config.toml
+      #   register: containerd_config
       
-      - name: Generate containerd config on remote host
-        command: containerd config default
-        register: containerd_config
-        changed_when: false
+      - name: Generate containerd config
+        shell: |
+          mkdir -p /etc/containerd
+          containerd config default > /etc/containerd/config.toml
       
-      - name: Write containerd configuration
-        copy:
-          content: "{{ containerd_config.stdout }}"
-          dest: /etc/containerd/config.toml
-
       - name: Enable SystemdCgroup in containerd config
         replace:
           path: /etc/containerd/config.toml
@@ -58,6 +46,12 @@
           name: containerd
           state: restarted
       
+      - name: Ensure containerd is running
+        service:
+          name: containerd
+          state: started
+          enabled: true
+      ##
       - name: Add Kubernetes GPG key
         apt_key:
           url: https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key
@@ -67,16 +61,27 @@
         apt_repository:
           repo: 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /'
           state: present
+          filename: kubernetes
 
       - name: Disable swap
-        shell: |
-          sudo swapoff -a
-          sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+        command: swapoff -a
       
-      - name: load kernel modules
-        shell: |
-          sudo modprobe overlay
-          sudo modprobe br_netfilter
+      - name: Comment out swap in fstab
+        replace:
+          path: /etc/fstab
+          regexp: '^([^#].* swap .P)$'
+          replace: '# \1'
+
+      
+      - name: Ensure overlay module is loaded
+        modprobe:
+          name: overlay
+          state: present
+        
+      - name: Ensure br_netfilter module is loaded
+        modprobe:
+          name: br_netfilter
+          state: present
 
       - name: Set up sysctl parameters
         copy:
@@ -97,8 +102,11 @@
   
   #############################
   - name: Set up master node
-    hosts: k8s_master
+    hosts: master
     become: yes
+    vars:
+      pod_network_cidr: 10.244.0.0/16
+
     tasks:
 
       - name: Install Kubernetes packages
@@ -110,7 +118,9 @@
           state: present
       
       - name: Hold Kubernetes packages
-        command: echo "{{ item }} hold" | sudo dpkg --set-selections
+        dpkg_selections:
+          name: "{{ item }}"
+          selection: hold
         loop:
           - kubectl
           - kubeadm
@@ -122,45 +132,56 @@
         register: kubeadm_init_check
       
       - name: Initialize Kubernetes cluster
-        shell: kubeadm init --pod-network-cidr=10.244.0.0/16
+        shell: kubeadm init --pod-network-cidr={{ pod_network_cidr }}
         when: not kubeadm_init_check.stat.exists
         register: kubeadm_init
         changed_when: kubeadm_init.rc == 0
       
       - name: Retrieve or generate kubeadm join command
         shell: kubeadm token create --print-join-command
-        register: join_command
+        register: join_command_result
         changed_when: false
 
-      - name: Save kubeadm join command for worker nodes to use
-        set_fact:
-          join_command: "{{ join_command.stdout }}"
-      
-      - name: Set KUBECONFIG for regular users
+      - name: Store join command in temporary host
+        add_host:
+          name: k8s_join_holder
+          groups: temp_kubernetes_info
+          k8s_join_command: "{{ join_command_result.stdout }}"
+        run_once: true
+        when: join_command_result.stdout is defined and join_command_result.stdout | length > 0
+
+      - name: Set KUBECONFIG for azureuser
+        become_user: root
+        become: true
         shell: |
-          mkdir -p $HOME/.kube 
-          sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config 
-          sudo chown $(id -u):$(id -g) $HOME/.kube/config 
-        when: kubeadm_init is defined or kubeadm_init_check.stat.exists
+          mkdir -p /home/{{ ansible_user }}/.kube
+          cp /etc/kubernetes/admin.conf /home/{{ ansible_user }}/.kube/config
+          chown {{ ansible_user }}:{{ ansible_user }} /home/{{ ansible_user }}/.kube/config
       
       - name: Wait for Kubernetes API to be ready
         command: kubectl get nodes
         register: api_ready
+
+        environment:
+          KUBECONFIG: /etc/kubernetes/admin.conf
         until: api_ready.rc == 0
         retries: 20
         delay: 10
         when: kubeadm_init is defined or kubeadm_init_check.stat.exists
 
       - name: Install CNI - Flannel
+        environment:
+          KUBECONFIG: /etc/kubernetes/admin.conf
         command: kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
         when: kubeadm_init is defined or kubeadm_init_check.stat.exists
   
   
   ############################
   - name: Set up worker nodes
-    hosts: k8s_nodes
+    hosts: worker
     become: yes
     tasks:
+
 
       - name: Install Kubernetes packages
         apt:
@@ -170,11 +191,30 @@
           state: present
       
       - name: Hold Kubernetes packages
-        command: echo "{{ item }} hold" | sudo dpkg --set-selections
+        dpkg_selections:
+          name: "{{ item }}"
+          selection: hold
         loop:
           - kubeadm
           - kubelet
       
+      - name: Ensure /var/lib/kubelet directory exists with correct permissions
+        file:
+          path: /var/lib/kubelet
+          state: directory
+          owner: root
+          group: root
+          mode: '0755'
+          recurse: yes
+      
+      - name: Check if node already joined
+        stat:
+          path: /etc/kubernetes/kubelet.conf
+        register: kubelet_config
+      
       - name: Join to Kubernetes cluster
-        shell: "{{ hostvars['k8s_master'].join_command }}"
-        when: hostvars['k8s_master'].join_command is defined
+        shell: "{{ hostvars['k8s_join_holder'].k8s_join_command }}"
+        when: 
+          - hostvars['k8s_join_holder'].k8s_join_command is defined
+          - hostvars['k8s_join_holder'].k8s_join_command | length > 0
+          - not kubelet_config.stat.exists
