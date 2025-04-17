@@ -7,10 +7,9 @@ metadata:
 spec:
   selector:
     app: mongo
-  type: None # to make a service healdess, we set type as none
+  clusterIP: None
   ports:
     - name: mongo
       protocol: TCP
       port: 27017
-      targetPort: defaultPort
-  # ports: # Headless service do not include ip address ??
+      targetPort: mongodb-default-port

@@ -11,4 +11,4 @@ spec:
   ports:
     - protocol: TCP
       port: 27017 # This must be a number
-      targetPort: defaultPort
+      targetPort: mongodb-default-port
