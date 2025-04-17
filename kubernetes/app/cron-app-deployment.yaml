@@ -12,7 +12,7 @@ spec:
   template:
     metadata:
       labels:
-        app: cron
+        app: cron-app
     spec:
       containers:
       - name: cron
