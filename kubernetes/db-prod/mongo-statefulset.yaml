@@ -17,7 +17,7 @@ spec:
         - name: mongodb_image
           image: mongo:7.0
           ports:
-            - name: mongodb-default-port
+            - name: mongo-port
               containerPort: 27017
 
           volumeMounts:

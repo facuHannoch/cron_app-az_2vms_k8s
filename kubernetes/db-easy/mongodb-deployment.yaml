@@ -16,7 +16,7 @@ spec:
         - name: mongodb
           image: mongo:7.0
           ports:
-            - name: mongodb-default-port
+            - name: mongo-port
               containerPort: 27017
 
           # Health Checks
