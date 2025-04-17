@@ -49,8 +49,8 @@ spec:
           #         name: mongo-secret
           #         key: password
 
-    # Volumes
-    volumes:
-      - name: mongodb-volume
-        persistentVolumeClaim: 
-          claimName:  mongodb-pvc
+      # Volumes
+      volumes:
+        - name: mongodb-volume
+          persistentVolumeClaim: 
+            claimName:  mongodb-pvc
