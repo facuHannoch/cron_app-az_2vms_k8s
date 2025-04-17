@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: cron-service
   labels:
-    app: cron
+    app: cron-app
 spec:
   selector:
     app: cron-app
