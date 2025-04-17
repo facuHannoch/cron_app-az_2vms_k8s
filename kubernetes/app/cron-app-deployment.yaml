@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cron-app-deployment
+  labels:
+    app: cron-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cron
+  template:
+    metadata:
+      labels:
+        app: cron
+    spec:
+      containers:
+      - name: cron
+        image: ghcr.io/facuhannoch/cron_app:latest
+        ports:
+          - containerPort: 8082
+            name: cron-app-api-port
+        env:
+          - name: DB_URL # mongo_uri
+            value: mongodb://mongodb-service:27017

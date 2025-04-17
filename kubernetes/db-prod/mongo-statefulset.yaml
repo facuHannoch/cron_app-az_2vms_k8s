@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+spec:
+  selector:
+    matchLabels:
+      app: mongodb # has to match .spec.template.metadata.labels
+  serviceName: "mongo-headless" # Must match the headless service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mongodb # has to match .spec.selector.matchLabels
+    spec:
+      containers:
+        - name: mongodb_image
+          image: mongo:7.0
+          ports:
+            - name: defaultPort
+              containerPort: 27017
+
+          volumeMounts:
+            - name: mongodb-volume
+              mountPath: /data/db
+
+  volumeClaimTemplates:
+    - metadata:
+        name: mongodb-volume
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        # storageClassName: "customStorageClass" # Here goes a custom defined class ???
+        resources:
+          requests:
+            storage: 1Gi

@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+        - name: mongodb_app
+          image: mongo:7.0
+          ports:
+            - name: defaultPort
+              containerPort: 27017
+
+          # Health Checks
+          readinessProbe:
+            exec:
+              command: ["mongo", "--eval", "db.adminCommand('ping').ok"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          
+          # Resources
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          
+          volumeMounts:
+            - name: mongodb-volume
+              mountPath: /data/db
+
+          # env:
+          #   - name: MONGO_DB_ROOT_USERNAME
+          #     value: root
+          #   - name: MONGO_INIT_ROOT_PASSWORD
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: mongo-secret
+          #         key: password
+
+    # Volumes
+    volumes:
+      - name: mongodb-volume
+        persistentVolumeClaim: 
+          claimName:  mongodb-pvc
