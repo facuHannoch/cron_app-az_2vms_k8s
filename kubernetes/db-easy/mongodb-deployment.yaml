@@ -13,10 +13,10 @@ spec:
         app: mongodb
     spec:
       containers:
-        - name: mongodb_app
+        - name: mongodb
           image: mongo:7.0
           ports:
-            - name: defaultPort
+            - name: mongo-port
               containerPort: 27017
 
           # Health Checks
@@ -49,8 +49,8 @@ spec:
           #         name: mongo-secret
           #         key: password
 
-    # Volumes
-    volumes:
-      - name: mongodb-volume
-        persistentVolumeClaim: 
-          claimName:  mongodb-pvc
+      # Volumes
+      volumes:
+        - name: mongodb-volume
+          persistentVolumeClaim: 
+            claimName:  mongodb-pvc

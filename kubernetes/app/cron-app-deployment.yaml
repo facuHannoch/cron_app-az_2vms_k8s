@@ -8,18 +8,17 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: cron
+      app: cron-app
   template:
     metadata:
       labels:
-        app: cron
+        app: cron-app
     spec:
       containers:
       - name: cron
         image: ghcr.io/facuhannoch/cron_app:latest
         ports:
           - containerPort: 8082
-            name: cron-app-api-port
         env:
           - name: DB_URL # mongo_uri
             value: mongodb://mongodb-service:27017
